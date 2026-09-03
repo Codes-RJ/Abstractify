@@ -21,6 +21,8 @@
   "dependencies": {
     "@google/genai": "^2.19.0",
     "@netlify/functions": "^2.6.0",
+    "@upstash/redis": "^1.38.3",
+    "@upstash/vector": "^1.2.3",
     "dotenv": "^16.4.5",
     "pdf-parse": "^1.1.1"
   },
@@ -37,4 +39,3 @@
     "vitest": "^1.6.0"
   }
 }
-

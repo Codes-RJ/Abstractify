@@ -7,6 +7,8 @@ import {
     Paper,
     checkPasscode,
 } from './_utils.js';
+import { cacheGet, cacheSet } from './shared/redis.js';
+import { upsertVectors } from './shared/vector.js';
 
 export default async (req: Request, context: Context) => {
     // Enable CORS for localhost testing if needed (though Netlify takes care of routing)
@@ -24,6 +26,18 @@ export default async (req: Request, context: Context) => {
             return new Response(JSON.stringify({ message: 'Query parameter is required' }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        // Check Redis distributed cache first
+        const cacheKey = `search:${query.trim().toLowerCase()}`;
+        const cachedResults = await cacheGet<Paper[]>(cacheKey);
+        if (cachedResults && cachedResults.length > 0) {
+            return new Response(JSON.stringify({ papers: cachedResults, fromCache: true }), {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                },
             });
         }
 
@@ -142,6 +156,11 @@ export default async (req: Request, context: Context) => {
 
         // Keep top 10 papers
         const finalPapers = papers.slice(0, 10);
+
+        // Asynchronously populate Redis cache
+        cacheSet(cacheKey, finalPapers, 86400).catch((err) =>
+            console.warn('[Search Cache] Failed to write to Redis:', err),
+        );
 
         return new Response(JSON.stringify({ papers: finalPapers }), {
             headers: {
