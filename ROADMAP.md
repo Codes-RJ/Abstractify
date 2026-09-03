@@ -92,7 +92,7 @@ We have published **36 live community issues** on our [GitHub Issues Page](https
 | 33 | ⚡ Real-Time SSE Streaming & Thought Traces UI | `Medium` | Frontend / AI | [`ISSUE_33`](issues/ISSUE_33_REALTIME_SSE_STREAMING_UI.md) |
 | 34 | ☁️ Cloudflare R2 PDF & Artifact Storage | `Medium` | Backend / Storage | [`ISSUE_34`](issues/ISSUE_34_CLOUDFLARE_R2_STORAGE.md) |
 | 35 | 🧩 Multi-Source Paper Deduplicator & Ranker | `Medium` | Backend / AI | [`ISSUE_35`](issues/ISSUE_35_MULTI_SOURCE_DEDUPLICATOR_RANKER.md) |
-| 36 | 🧠 Cortex — Epistemic Cognitive Architecture | `Hard` | Core AI / Research | [`ISSUE_36`](issues/ISSUE_36_CORTEX_COGNITIVE_ARCHITECTURE.md) |
+| 36 | 🧠 Cortex — Epistemic Cognitive Architecture | `Research` | Core AI / Research | `[Internal In-Lab Research]` |
 
 ---
 
