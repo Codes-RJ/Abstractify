@@ -230,7 +230,7 @@ netlify deploy --prod
 
 ## 🗺️ Roadmap
 
-Check out our public [ROADMAP.md](ROADMAP.md) to track project progress across Phase 1 to Phase 4.
+Check out our public [ROADMAP.md](ROADMAP.md) to track project progress across Phase 1 to Phase 6.
 
 ---
 
@@ -239,7 +239,7 @@ Check out our public [ROADMAP.md](ROADMAP.md) to track project progress across P
 We welcome contributions from everyone! Whether it's fixing a typo, improving documentation, or building a new feature — every contribution matters.
 
 - 📖 Read the [Contributing Guide](CONTRIBUTING.md) to get started
-- 🎯 Browse [20 community issue specifications](issues/) ready for open source contributors
+- 🎯 Browse [36 community issue specifications](https://github.com/vansh7nvc/Abstractify/issues) ready for open source contributors
 - 🏷️ Look for [`good first issue`](https://github.com/vansh7nvc/Abstractify/labels/good%20first%20issue) labels
 - 💬 Read the [Community Support Guide](SUPPORT.md) for help & FAQ
 - 📋 Check the [Code of Conduct](CODE_OF_CONDUCT.md)
