@@ -29,7 +29,6 @@ extract_docx.ps1
 .eslintcache
 coverage/
 
-# Internal docs & local issue specs
+# Internal docs
 docs/
-issues/
 
