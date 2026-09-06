@@ -10,16 +10,21 @@
 
 Researchers frequently consume scientific literature while commuting or multitasking. However, feeding raw abstracts directly into a single TTS voice produces a dry, monotonous read-aloud experience that is difficult to absorb.
 
-Per production guidance from community discussion, the most listenable format is an intermediate **two-host conversational dialogue** (similar to NotebookLM audio overviews). Converting paper metadata and consensus syntheses into structured dialogue turns (`[{"speaker": "A", "text": "..."}, {"speaker": "B", "text": "..."}]`) delivered by alternating voices creates an engaging, natural briefing.
+Per production guidance from community discussion (Issue #12 comments), the most listenable format is an intermediate **two-host conversational dialogue** (similar to NotebookLM audio overviews). Converting paper metadata and consensus syntheses into structured dialogue turns (`[{"speaker": "A", "text": "..."}, {"speaker": "B", "text": "..."}]`) delivered by alternating voices creates an engaging, natural briefing.
+
+### Architectural Decision: v1 Client-Side TTS vs. v2 Server-Side Audio Pipeline
+- **v1 Client-Side TTS (`window.speechSynthesis`)**: Deliberate zero-cost / serverless constraint decision. Netlify serverless functions enforce a strict 10s execution timeout and zero external binary audio storage budget. Client-side synthesis incurs zero hosting costs and runs instantly. *Known limitation*: OS-dependent voice timbres across platforms and lack of audio file caching.
+- **v2 Server-Side Audio Pipeline (Planned Roadmap)**: When backend compute/storage budget permits, a server-side TTS engine (e.g. `edge-tts`) will synthesize cached `.mp3` files stored in Redis/CDN for deterministic, identical playback across all devices.
+- **Durable Contract**: The intermediate structured turns JSON schema (`speaker: 'A' | 'B'` and `text`) serves as the durable, canonical contract. Audio rendering is derived and disposable, guaranteeing zero breaking changes when migrating to v2.
 
 ---
 
 ## 🎯 Goal
 
-1. Generate structured two-host dialogue scripts (`speaker: 'A' | 'B'`) directly from paper metadata or Consensus Meter syntheses using Google Gemini with structured JSON mode and Upstash Redis caching.
+1. Generate structured two-host dialogue scripts (`speaker: 'A' | 'B'`) directly from paper metadata or Consensus Meter syntheses using Google Gemini with compact JSON output and Upstash Redis caching.
 2. Provide a **"🎙️ Audio Briefing"** button on paper cards and the Consensus Meter panel.
-3. Deliver audio using dual alternating voices (Host A / Host B) via the browser Web Speech API (`window.speechSynthesis`).
-4. Provide an interactive dialogue transcript preview showing turns with live active-speaker highlighting, which doubles as an accessible text fallback if browser TTS voices are unavailable.
+3. Deliver audio using dual alternating voices (Host A / Host B) via the browser Web Speech API (`window.speechSynthesis`) for v1.
+4. Provide an interactive dialogue transcript preview showing turns with live active-speaker highlighting, serving both as an accessibility feature and as a text fallback when browser voices are unavailable.
 
 ---
 
@@ -46,9 +51,14 @@ Per production guidance from community discussion, the most listenable format is
     "cached": false
   }
   ```
-- **Prompt Engineering**: Prompt Gemini directly for minimal schema (`speaker` and `text`) with a worked spoken example containing natural contractions, quick questions, and conversational register.
+- **Token Budget & Generation Constraints**:
+  - **Abstract Pre-Processing Cap**: Cap input abstract text at ~350 words prior to prompt construction.
+  - **Output Token Ceiling**: Set `maxOutputTokens` to `1536` (accommodating a ~16-turn, ~485-word spoken dialogue with safety margin).
+  - **Compact JSON Instruction**: Explicitly instruct Gemini in the prompt: `Output compact, single-line JSON without formatting newlines or indentation to minimize token overhead.` (reclaims ~75 structural whitespace tokens).
+  - **Empirical Token Logging**: Log `usage.output_tokens` on every generation to monitor empirical p95 token consumption.
+  - **Truncation & Parse Error Recovery**: Treat `max_tokens` truncation as a first-class outcome. Wrap `JSON.parse` with recovery logic (attempting to close unclosed JSON structures or falling back cleanly to the local script generator) before running terminal punctuation validation on the final turn.
 - **Distributed Cache**: Hash dialogue turns and store in Upstash Redis via `cacheSet(key, turns, 86400 * 30)` for instant, zero-marginal-cost re-listening.
-- **Deterministic Fallback**: Local two-host script generator if Gemini API key is not provided or network is offline.
+- **Deterministic Fallback**: Local two-host script generator if Gemini API key is not provided, network fails, or truncation invalidates JSON.
 
 ### 2. Dual-Voice Playback Engine (`public/js/tts.js`)
 - **`TTSManager` Class**:
@@ -71,20 +81,21 @@ Per production guidance from community discussion, the most listenable format is
 - **Dialogue Transcript Modal (`#podcast-transcript-modal`)**:
   - Renders the conversation turns with distinct Host A and Host B tags.
   - Dynamically highlights and scrolls to the currently active spoken turn.
-  - Graceful fallback: automatically displays readable dialogue if speech synthesis is unsupported in the visitor's browser.
+  - Accessible presentation: displays readable dialogue for hearing accessibility or if speech synthesis is unsupported in the visitor's browser.
 
 ---
 
 ## ✅ Acceptance Criteria
 
 - [ ] Add `🎙️ Audio Briefing` button on paper cards and Consensus Meter panel.
-- [ ] Implement backend `/api/podcast-script` endpoint generating two-host structured dialogue turns (`speaker` and `text`) with Gemini JSON mode.
+- [ ] Implement backend `/api/podcast-script` endpoint generating two-host structured dialogue turns (`speaker` and `text`) with Gemini.
+- [ ] Set `maxOutputTokens: 1536` with compact JSON prompt enforcement and log `usage.output_tokens`.
+- [ ] Implement robust JSON truncation and parse error handling with deterministic local fallback.
 - [ ] Cache dialogue turns in Upstash Redis to prevent redundant LLM generations.
-- [ ] Implement dual-voice playback engine alternating between Host A and Host B.
+- [ ] Implement dual-voice playback engine alternating between Host A and Host B via `window.speechSynthesis`.
 - [ ] Implement audio dock with Play, Pause, Resume, Stop controls and `.audio-playing-wave` equalizer animation.
 - [ ] Add playback speed controls (`1.0x`, `1.25x`, `1.5x`, `2.0x`) and customizable Host A/B voice selectors.
 - [ ] Provide interactive dialogue transcript drawer showing turns with live active-speaker highlighting.
-- [ ] Gracefully handle browsers without Web Speech API support by rendering the dialogue transcript preview.
 - [ ] Maintain test coverage >85% with unit tests for backend endpoint and frontend TTS manager.
 
 ---
@@ -94,4 +105,5 @@ Per production guidance from community discussion, the most listenable format is
 - Keep schema minimal (`speaker` and `text`); avoid extra emotional tags that induce flat LLM prose.
 - Provide a spoken example in the prompt with contractions and lively back-and-forth cadence.
 - Cache on the turns hash; keep turns as the durable artifact so audio rendering is derived and disposable.
+- Explicitly prompt for compact single-line JSON to avoid wasting token budget on formatting whitespace.
 - Feature-detect `speechSynthesis` and available voices before attempting playback.
